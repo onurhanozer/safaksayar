@@ -69,22 +69,42 @@ const tamamlanmaMetni = `%${tamamlanmaYuzde} tamamlandı`;
 ## 3. Milestone (Dönüm Noktası) Kartları
 
 **Konum:**
-- Tanımlar: App.js, satırlar 303-323
-- Görüntüleme: App.js, satırlar 740-752
+- Tanımlar: App.js, satırlar 303-347
+- Görüntüleme: App.js, satırlar 813-834
 
 ### Mevcut Milestone'lar
 
-#### 1. 100. Gün Kutlu Olsun 🎉
-- **Tetikleme Koşulu:** `gecenGunDisplay >= 100`
+#### 1. İlk 10 Gün Geride 🌱
+- **Tetikleme Koşulu:** `gecenGunDisplay >= 10 && gecenGunDisplay < 30`
+- **Başlık:** "İlk 10 Gün Geride 🌱"
+- **Açıklama:** "İlk on günü başarıyla tamamladın! Alışma süreci başladı."
+
+#### 2. 30. Gün Başarısı 🌟
+- **Tetikleme Koşulu:** `gecenGunDisplay >= 30 && gecenGunDisplay < 100`
+- **Başlık:** "30. Gün Başarısı 🌟"
+- **Açıklama:** "Bir ay geride kaldı! Artık rutin oturdu, tempo devam!"
+
+#### 3. 100. Gün Kutlu Olsun 🎉
+- **Tetikleme Koşulu:** `gecenGunDisplay >= 100 && gecenGunDisplay < 150`
 - **Başlık:** "100. Gün Kutlu Olsun 🎉"
 - **Açıklama:** "Yüz gün geride kaldı; sabrın ve disiplinin için tebrikler!"
 
-#### 2. Yarısını Devirdin 💪
+#### 4. 150 Gün - 5 Ay Tamamlandı 🏆
+- **Tetikleme Koşulu:** `gecenGunDisplay >= 150`
+- **Başlık:** "150 Gün - 5 Ay Tamamlandı 🏆"
+- **Açıklama:** "Beş ay geride kaldı! İnanılmaz bir başarı, son hızla devam!"
+
+#### 5. Yarısını Devirdin 💪
 - **Tetikleme Koşulu:** `tamamlanmaYuzde >= 50 && kalanGunDisplay > 0`
 - **Başlık:** "Yarısını Devirdin 💪"
 - **Açıklama:** "Görevinin yarısı tamam. Aynı motivasyonla devam!"
 
-#### 3. Tek Hanelere Düştün 🎉
+#### 6. Son 10 Güne Girdin 🔥
+- **Tetikleme Koşulu:** `kalanGunDisplay > 0 && kalanGunDisplay <= 10 && kalanGunDisplay > 9`
+- **Başlık:** "Son 10 Güne Girdin 🔥"
+- **Açıklama:** "Artık son 10 gün! Finish çizgisi çok yakın, biraz daha dayan!"
+
+#### 7. Tek Hanelere Düştün 🎉
 - **Tetikleme Koşulu:** `kalanGunDisplay > 0 && kalanGunDisplay <= 9`
 - **Başlık:** "Tek Hanelere Düştün 🎉"
 - **Açıklama:** "Son düzlüğe girdin; şafak sayende sökecek!"
@@ -217,6 +237,176 @@ milestoneCard: {
 }
 ```
 
+## 4. Animasyon Sistemi
+
+**Konum:** App.js, satırlar 66-151
+
+### Animasyon Değerleri
+
+Uygulama, React Native'in Animated API'sini kullanarak şu animasyonları sağlar:
+
+```javascript
+const progressBarWidth = useRef(new Animated.Value(0)).current;
+const milestoneOpacity = useRef(new Animated.Value(0)).current;
+const milestoneScale = useRef(new Animated.Value(0.8)).current;
+const circularPulse = useRef(new Animated.Value(1)).current;
+```
+
+### 4.1. Progress Bar Animasyonu
+
+**Özellikler:**
+- **Spring animasyon** ile yumuşak geçiş
+- İlerleme yüzdesi değiştiğinde otomatik çalışır
+- Native driver devre dışı (width animasyonu için gerekli)
+
+**Parametreler:**
+- `tension: 40` - Yay gerginliği
+- `friction: 8` - Sürtünme katsayısı
+- `useNativeDriver: false` - Width animasyonu için
+
+### 4.2. Milestone Kartları Animasyonu
+
+**Fade-in Efekti:**
+- Opacity: 0 → 1
+- Duration: 600ms
+- Timing animasyonu
+
+**Scale Efekti:**
+- Scale: 0.8 → 1
+- Spring animasyon
+- `tension: 50`, `friction: 7`
+
+**Davranış:**
+- Kartlar görünür hale geldiğinde tetiklenir
+- Paralel animasyon (fade + scale birlikte)
+- Native driver aktif (transform ve opacity için)
+
+### 4.3. Dairesel İlerleme Pulse Animasyonu
+
+**Özellikler:**
+- **Loop animasyon** - Sürekli tekrar eder
+- Sequence kullanımı (büyüt → küçült)
+- Hafif pulse efekti (1.0 → 1.05 → 1.0)
+
+**Timing:**
+- Büyüme: 2000ms
+- Küçülme: 2000ms
+- Toplam döngü: 4 saniye
+
+**Davranış:**
+- Kayıt yapıldığında başlar
+- Component unmount olduğunda durur
+- Her iki dairesel göstergeye uygulanır
+
+### Animasyon Kod Örnekleri
+
+#### Progress Bar Animasyonu
+```javascript
+useEffect(() => {
+  if (kayitli && gecenGun !== null) {
+    Animated.spring(progressBarWidth, {
+      toValue: tamamlanmaYuzde,
+      useNativeDriver: false,
+      tension: 40,
+      friction: 8
+    }).start();
+  }
+}, [tamamlanmaYuzde, kayitli, gecenGun]);
+```
+
+#### Milestone Animasyonu
+```javascript
+Animated.parallel([
+  Animated.timing(milestoneOpacity, {
+    toValue: 1,
+    duration: 600,
+    useNativeDriver: true
+  }),
+  Animated.spring(milestoneScale, {
+    toValue: 1,
+    useNativeDriver: true,
+    tension: 50,
+    friction: 7
+  })
+]).start();
+```
+
+#### Circular Pulse
+```javascript
+Animated.loop(
+  Animated.sequence([
+    Animated.timing(circularPulse, {
+      toValue: 1.05,
+      duration: 2000,
+      useNativeDriver: true
+    }),
+    Animated.timing(circularPulse, {
+      toValue: 1,
+      duration: 2000,
+      useNativeDriver: true
+    })
+  ])
+).start();
+```
+
+## 5. Gelişmiş Görsel Tasarım
+
+### Milestone Bölümü Stilleri
+
+**Yeni Özellikler:**
+- Hafif mor arka plan: `rgba(102, 126, 234, 0.08)`
+- Çerçeve border: 2px, hafif mor
+- Border radius: 20px
+- İç padding: 16px
+
+**Başlık Stilleri:**
+- Font boyutu: 18px
+- Font ağırlığı: 900 (extra bold)
+- Letter spacing: 2px
+- Text shadow efekti
+
+**Kart Stilleri:**
+- 5px sol border (vurgu)
+- Tüm kenarlarda 1px hafif border
+- Daha büyük shadow (elevation: 6)
+- Daha fazla padding (20px)
+- Geliştirilmiş font boyutları
+
+## Performans Optimizasyonları
+
+### Native Driver Kullanımı
+
+**Aktif:**
+- Milestone opacity ve scale animasyonları
+- Circular pulse animasyonu
+- Transform ve opacity işlemleri
+
+**Devre Dışı:**
+- Progress bar width animasyonu (CSS property nedeniyle)
+
+### useEffect Bağımlılıkları
+
+Her animasyon sadece gerekli state değişikliklerinde tetiklenir:
+- Progress bar: `tamamlanmaYuzde`, `kayitli`, `gecenGun`
+- Milestone: `achievedMilestones.length`, `kayitli`
+- Circular: `kayitli`
+
+### Cleanup Functions
+
+Loop animasyonları component unmount olduğunda düzgün şekilde durdurulur:
+```javascript
+return () => pulseAnimation.stop();
+```
+
 ## Sonuç
 
-Şafak Sayar uygulaması, askerlerin motivasyonunu yüksek tutmak için kapsamlı bir zaman ve ilerleme gösterim sistemine sahiptir. Dairesel göstergeler, stat kartları, ilerleme çubuğu ve milestone kartları ile kullanıcıya görsel ve motivasyonel geri bildirim sağlanır.
+Şafak Sayar uygulaması, askerlerin motivasyonunu yüksek tutmak için kapsamlı bir zaman ve ilerleme gösterim sistemine sahiptir.
+
+### Özellik Özeti
+
+✅ **7 farklı milestone** - İlk 10 günden tek haneli günlere kadar
+✅ **3 animasyon türü** - Progress bar, milestone kartları, dairesel pulse
+✅ **Gelişmiş görsel tasarım** - Gradient arka planlar, border efektleri, shadow
+✅ **Performans optimizasyonu** - Native driver kullanımı, cleanup functions
+
+Dairesel göstergeler, stat kartları, animasyonlu ilerleme çubuğu ve milestone kartları ile kullanıcıya görsel ve motivasyonel geri bildirim sağlanır.

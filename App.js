@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  TextInput, 
-  TouchableOpacity, 
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
   ScrollView,
   Dimensions,
   StatusBar,
@@ -63,6 +63,12 @@ export default function App() {
   const bottomSafeHeight = Platform.OS === 'android' ? 42 : 24;
   const heroBottomPadding = bottomSafeHeight + 120;
 
+  // Animasyon değerleri
+  const progressBarWidth = useRef(new Animated.Value(0)).current;
+  const milestoneOpacity = useRef(new Animated.Value(0)).current;
+  const milestoneScale = useRef(new Animated.Value(0.8)).current;
+  const circularPulse = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     yukle();
   }, []);
@@ -85,6 +91,64 @@ export default function App() {
       }
     }
   }, [showDatePicker]);
+
+  // Progress bar animasyonu
+  useEffect(() => {
+    if (kayitli && gecenGun !== null) {
+      Animated.spring(progressBarWidth, {
+        toValue: tamamlanmaYuzde,
+        useNativeDriver: false,
+        tension: 40,
+        friction: 8
+      }).start();
+    }
+  }, [tamamlanmaYuzde, kayitli, gecenGun]);
+
+  // Milestone kartları animasyonu
+  useEffect(() => {
+    if (kayitli && achievedMilestones.length > 0) {
+      milestoneOpacity.setValue(0);
+      milestoneScale.setValue(0.8);
+
+      Animated.parallel([
+        Animated.timing(milestoneOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true
+        }),
+        Animated.spring(milestoneScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          tension: 50,
+          friction: 7
+        })
+      ]).start();
+    }
+  }, [achievedMilestones.length, kayitli]);
+
+  // Dairesel ilerleme pulse animasyonu
+  useEffect(() => {
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(circularPulse, {
+          toValue: 1.05,
+          duration: 2000,
+          useNativeDriver: true
+        }),
+        Animated.timing(circularPulse, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true
+        })
+      ])
+    );
+
+    if (kayitli) {
+      pulseAnimation.start();
+    }
+
+    return () => pulseAnimation.stop();
+  }, [kayitli]);
 
   const selectDate = (gun, ay, yil) => {
     setSulusGun(gun.toString());
@@ -302,16 +366,40 @@ export default function App() {
   const motivasyon = getMotivasyonMesaji();
   const milestoneDefinitions = [
     {
+      key: 'first-ten-days',
+      condition: gecenGunDisplay >= 10 && gecenGunDisplay < 30,
+      title: 'İlk 10 Gün Geride 🌱',
+      description: 'İlk on günü başarıyla tamamladın! Alışma süreci başladı.'
+    },
+    {
+      key: 'thirty-days',
+      condition: gecenGunDisplay >= 30 && gecenGunDisplay < 100,
+      title: '30. Gün Başarısı 🌟',
+      description: 'Bir ay geride kaldı! Artık rutin oturdu, tempo devam!'
+    },
+    {
       key: 'hundred-days',
-      condition: gecenGunDisplay >= 100,
+      condition: gecenGunDisplay >= 100 && gecenGunDisplay < 150,
       title: '100. Gün Kutlu Olsun 🎉',
       description: 'Yüz gün geride kaldı; sabrın ve disiplinin için tebrikler!'
+    },
+    {
+      key: 'five-months',
+      condition: gecenGunDisplay >= 150,
+      title: '150 Gün - 5 Ay Tamamlandı 🏆',
+      description: 'Beş ay geride kaldı! İnanılmaz bir başarı, son hızla devam!'
     },
     {
       key: 'halfway',
       condition: tamamlanmaYuzde >= 50 && kalanGunDisplay > 0,
       title: 'Yarısını Devirdin 💪',
       description: 'Görevinin yarısı tamam. Aynı motivasyonla devam!'
+    },
+    {
+      key: 'last-ten-days',
+      condition: kalanGunDisplay > 0 && kalanGunDisplay <= 10 && kalanGunDisplay > 9,
+      title: 'Son 10 Güne Girdin 🔥',
+      description: 'Artık son 10 gün! Finish çizgisi çok yakın, biraz daha dayan!'
     },
     {
       key: 'single-digits',
@@ -639,12 +727,17 @@ export default function App() {
               </View>
               <View style={styles.progressContainer}>
                 <View style={styles.progressItem}>
-                  <View style={styles.progressCircle}>
-                    <View style={[styles.progressRing, { 
+                  <Animated.View
+                    style={[
+                      styles.progressCircle,
+                      { transform: [{ scale: circularPulse }] }
+                    ]}
+                  >
+                    <View style={[styles.progressRing, {
                       borderColor: '#fff',
-                      transform: [{ rotate: `${(kalanYuzde * 3.6) - 90}deg` }] 
+                      transform: [{ rotate: `${(kalanYuzde * 3.6) - 90}deg` }]
                     }]} />
-                    <View style={[styles.progressRing, { 
+                    <View style={[styles.progressRing, {
                       borderColor: 'rgba(255,255,255,0.35)',
                       opacity: 0.35
                     }]} />
@@ -652,17 +745,22 @@ export default function App() {
                       <Text style={styles.progressNumber}>{kalanGun}</Text>
                       <Text style={styles.progressLabel}>Gün</Text>
                     </View>
-                  </View>
+                  </Animated.View>
                   <Text style={styles.progressTitle}>Kalan Süre</Text>
                 </View>
 
                 <View style={styles.progressItem}>
-                  <View style={styles.progressCircle}>
-                    <View style={[styles.progressRing, { 
+                  <Animated.View
+                    style={[
+                      styles.progressCircle,
+                      { transform: [{ scale: circularPulse }] }
+                    ]}
+                  >
+                    <View style={[styles.progressRing, {
                       borderColor: '#fff',
-                      transform: [{ rotate: `${(tamamlanmaYuzde * 3.6) - 90}deg` }] 
+                      transform: [{ rotate: `${(tamamlanmaYuzde * 3.6) - 90}deg` }]
                     }]} />
-                    <View style={[styles.progressRing, { 
+                    <View style={[styles.progressRing, {
                       borderColor: 'rgba(255,255,255,0.35)',
                       opacity: 0.35
                     }]} />
@@ -670,7 +768,7 @@ export default function App() {
                       <Text style={styles.progressNumber}>{gecenGun}</Text>
                       <Text style={styles.progressLabel}>Gün</Text>
                     </View>
-                  </View>
+                  </Animated.View>
                   <Text style={styles.progressTitle}>Geçen Süre</Text>
                 </View>
               </View>
@@ -678,7 +776,17 @@ export default function App() {
               <View style={styles.barContainer}>
                 <Text style={styles.barLabel}>İlerleme Durumu</Text>
                 <View style={styles.barTrack}>
-                  <View style={[styles.barFill, { width: `${tamamlanmaYuzde}%` }]} />
+                  <Animated.View
+                    style={[
+                      styles.barFill,
+                      {
+                        width: progressBarWidth.interpolate({
+                          inputRange: [0, 100],
+                          outputRange: ['0%', '100%']
+                        })
+                      }
+                    ]}
+                  />
                 </View>
                 <Text style={styles.barPercent}>{tamamlanmaMetni}</Text>
               </View>
@@ -740,13 +848,22 @@ export default function App() {
             {achievedMilestones.length > 0 && (
               <View style={styles.milestoneSection}>
                 <Text style={styles.milestoneSectionTitle}>Dönüm Noktaların</Text>
-                {achievedMilestones.map((milestone) => (
-                  <View key={milestone.key} style={styles.milestoneCard}>
+                {achievedMilestones.map((milestone, index) => (
+                  <Animated.View
+                    key={milestone.key}
+                    style={[
+                      styles.milestoneCard,
+                      {
+                        opacity: milestoneOpacity,
+                        transform: [{ scale: milestoneScale }]
+                      }
+                    ]}
+                  >
                     <Text style={styles.milestoneTitle}>{milestone.title}</Text>
                     {milestone.description ? (
                       <Text style={styles.milestoneText}>{milestone.description}</Text>
                     ) : null}
-                  </View>
+                  </Animated.View>
                 ))}
               </View>
             )}
@@ -2280,39 +2397,55 @@ export default function App() {
   milestoneSection: {
     marginHorizontal: 16,
     marginBottom: 16,
+    backgroundColor: 'rgba(102, 126, 234, 0.08)',
+    borderRadius: 20,
+    padding: 16,
+    paddingTop: 20,
+    borderWidth: 2,
+    borderColor: 'rgba(102, 126, 234, 0.2)',
   },
   milestoneSectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
     color: '#667eea',
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 2,
+    textShadowColor: 'rgba(102, 126, 234, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   milestoneCard: {
     backgroundColor: '#fff',
     borderRadius: 18,
-    padding: 18,
+    padding: 20,
     marginBottom: 12,
     shadowColor: '#667eea',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 4,
-    borderLeftWidth: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+    borderLeftWidth: 5,
     borderLeftColor: '#667eea',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(102, 126, 234, 0.1)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(102, 126, 234, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(102, 126, 234, 0.1)',
   },
   milestoneTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '900',
     color: '#212529',
-    marginBottom: 6,
+    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   milestoneText: {
-    fontSize: 13,
-    color: '#6c757d',
-    lineHeight: 20,
+    fontSize: 14,
+    color: '#495057',
+    lineHeight: 22,
     fontWeight: '500',
   },
 });
