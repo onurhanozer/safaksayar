@@ -408,7 +408,7 @@ export default function App() {
       description: 'Son düzlüğe girdin; şafak sayende sökecek!'
     }
   ];
-  const achievedMilestones = milestoneDefinitions.filter(item => item.condition);
+  const achievedMilestones = kayitli ? milestoneDefinitions.filter(item => item.condition) : [];
 
   if (!kayitli) {
     return (
@@ -845,7 +845,7 @@ export default function App() {
               <Text style={styles.dailyQuoteText}>{getGununSozu()}</Text>
             </View>
 
-            {achievedMilestones.length > 0 && (
+            {achievedMilestones && achievedMilestones.length > 0 && (
               <View style={styles.milestoneSection}>
                 <Text style={styles.milestoneSectionTitle}>Dönüm Noktaların</Text>
                 {achievedMilestones.map((milestone, index) => (
