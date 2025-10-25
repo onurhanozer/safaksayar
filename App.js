@@ -104,9 +104,9 @@ export default function App() {
     }
   }, [tamamlanmaYuzde, kayitli, gecenGun]);
 
-  // Milestone kartları animasyonu
+  // Milestone kartları animasyonu - kalanGun ve gecenGun değiştiğinde tetiklenir
   useEffect(() => {
-    if (kayitli && achievedMilestones.length > 0) {
+    if (kayitli && (kalanGun !== null || gecenGun !== null)) {
       milestoneOpacity.setValue(0);
       milestoneScale.setValue(0.8);
 
@@ -124,7 +124,7 @@ export default function App() {
         })
       ]).start();
     }
-  }, [achievedMilestones.length, kayitli]);
+  }, [kalanGun, gecenGun, kayitli]);
 
   // Dairesel ilerleme pulse animasyonu
   useEffect(() => {
